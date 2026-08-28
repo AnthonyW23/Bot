@@ -71,11 +71,11 @@ export function createHero(name: string, raceId: string, classId: string, abilit
     questLog: [],
     flags: {},
     shards: [],
-    x: 24.5 * 48,
-    y: 48.8 * 48,
+    x: 25.2 * 48,
+    y: 52.4 * 48,
     plane: "material",
     facing: 0,
-    shrine: { plane: "material", x: 24.5 * 48, y: 49.4 * 48 },
+    shrine: { plane: "material", x: 25.2 * 48, y: 52.6 * 48 },
   };
 }
 

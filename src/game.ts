@@ -380,7 +380,7 @@ export class Game {
     if (this.input.keys.has("d") || this.input.keys.has("ArrowRight")) mx += 1;
     const moving = mx || my;
     const sprint = this.input.keys.has("Shift") && h.stamina > 0;
-    const spd = (118 * d.speed + (sprint ? 55 : 0) + (this.rageT ? 20 : 0)) * (this.dodge > 0.15 ? 2.2 : 1);
+    const spd = (168 * d.speed + (sprint ? 70 : 0) + (this.rageT ? 20 : 0)) * (this.dodge > 0.15 ? 2.2 : 1);
     if (moving) {
       const len = Math.hypot(mx, my) || 1;
       const dummy: Ent = { id: "p", kind: "player", x: h.x, y: h.y, r: 12 };
@@ -402,7 +402,7 @@ export class Game {
     if (tileAt(map, h.x, h.y) === 3) h.hp -= dt * 8;
     if (tileAt(map, h.x, h.y) === 2) h.stamina = Math.max(0, h.stamina - dt * 10);
 
-    if (this.input.mouse.clicked && this.atkCd <= 0) this.primary(aim);
+    if ((this.input.mouse.clicked || this.input.mouse.down) && this.atkCd <= 0) this.primary(aim);
     if (this.input.just(" ") && h.stamina >= 18) this.doDodge(mx, my);
     const cls = classById(h.classId);
     cls.abilities.forEach((a, i) => {
@@ -481,7 +481,7 @@ export class Game {
       const ea = ang(h, e);
       let da = Math.abs(ea - a);
       while (da > Math.PI) da = Math.abs(da - Math.PI * 2);
-      const reach = 46 + (hasNode(h, "f5") ? 18 : 0);
+      const reach = 62 + (hasNode(h, "f5") ? 18 : 0);
       if (dd < reach + e.r && da < 0.9) {
         const { dmg, crit } = attackDamage(h, rng, { sneak: sneak || this.stealth > 0 });
         this.hurt(e, dmg, crit);

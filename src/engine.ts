@@ -89,6 +89,7 @@ export class Input {
       this.mouse.y = ((e.clientY - r.top) / r.height) * canvas.height;
     });
     canvas.addEventListener("mousedown", (e) => {
+      canvas.focus();
       if (e.button === 0) {
         this.mouse.down = true;
         this.mouse.clicked = true;

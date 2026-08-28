@@ -107,10 +107,24 @@ function path(m: PlaneWorld, x0: number, y0: number, x1: number, y1: number, t: 
 function building(m: PlaneWorld, x: number, y: number, w: number, h: number, door: "n" | "s" | "e" | "w"): void {
   rect(m, x, y, w, h, 1);
   rect(m, x + 1, y + 1, w - 2, h - 2, 0);
-  if (door === "s") m.tiles[idx(m.w, x + Math.floor(w / 2), y + h - 1)] = 0;
-  if (door === "n") m.tiles[idx(m.w, x + Math.floor(w / 2), y)] = 0;
-  if (door === "e") m.tiles[idx(m.w, x + w - 1, y + Math.floor(h / 2))] = 0;
-  if (door === "w") m.tiles[idx(m.w, x, y + Math.floor(h / 2))] = 0;
+  const mx = x + Math.floor(w / 2);
+  const my = y + Math.floor(h / 2);
+  if (door === "s") {
+    m.tiles[idx(m.w, mx, y + h - 1)] = 0;
+    m.tiles[idx(m.w, mx - 1, y + h - 1)] = 0;
+  }
+  if (door === "n") {
+    m.tiles[idx(m.w, mx, y)] = 0;
+    m.tiles[idx(m.w, mx - 1, y)] = 0;
+  }
+  if (door === "e") {
+    m.tiles[idx(m.w, x + w - 1, my)] = 0;
+    m.tiles[idx(m.w, x + w - 1, my - 1)] = 0;
+  }
+  if (door === "w") {
+    m.tiles[idx(m.w, x, my)] = 0;
+    m.tiles[idx(m.w, x, my - 1)] = 0;
+  }
 }
 
 export function generatePlane(id: PlaneId, seed: number): PlaneWorld {
@@ -159,6 +173,7 @@ function genMaterial(m: PlaneWorld, rng: RNG): void {
   building(m, 26, 44, 4, 4, "s");
   building(m, 20, 43, 4, 4, "s");
   building(m, 25, 49, 4, 3, "n");
+  rect(m, 20, 50, 16, 7, 0);
   circle(m, 72, 48, 6, 0);
   rect(m, 70, 46, 5, 5, 1);
   rect(m, 71, 47, 3, 3, 0);
@@ -169,16 +184,16 @@ function genMaterial(m: PlaneWorld, rng: RNG): void {
   circle(m, 18, 40, 3, 3);
   circle(m, 18, 40, 2, 0);
   circle(m, 50, 70, 4, 0);
-  m.spawn = { x: 24.5 * TILE, y: 48.8 * TILE };
-  m.home = { x: 24.5 * TILE, y: 49.4 * TILE };
+  m.spawn = { x: 25.2 * TILE, y: 52.4 * TILE };
+  m.home = { x: 25.2 * TILE, y: 52.6 * TILE };
   m.landmarks = [
-    { id: "inn", name: "The Cracked Stein", x: 24.5, y: 48.5, kind: "building" },
+    { id: "inn", name: "The Cracked Stein", x: 24.5, y: 51.2, kind: "building" },
     { id: "gate", name: "The First Gate", x: 72, y: 48, kind: "quest" },
     { id: "stones", name: "Standing Stones", x: 40, y: 22, kind: "portal", plane: "feywild" },
     { id: "well", name: "Well of Silence", x: 36, y: 72, kind: "portal", plane: "shadowfell" },
     { id: "circle", name: "Infernal Circle", x: 14, y: 62, kind: "portal", plane: "hells" },
     { id: "crater", name: "Chapel Crater", x: 18, y: 40, kind: "portal", plane: "abyss" },
-    { id: "shrine_m", name: "Ashenford Shrine", x: 24.6, y: 50.6, kind: "shrine" },
+    { id: "shrine_m", name: "Ashenford Shrine", x: 26.4, y: 53.2, kind: "shrine" },
     { id: "camp", name: "Bandit Camp", x: 50, y: 70, kind: "quest" },
     { id: "chest_m", name: "Waycache", x: 32, y: 44, kind: "chest" },
   ];
@@ -285,6 +300,18 @@ export function spawnEntities(map: PlaneWorld, seed: number, killed: Set<string>
     ents.push({ id: "totem", kind: "totem", x: 42 * TILE, y: 52 * TILE, r: 16, name: "Whispering Knight", color: "#6d8a4a" });
   }
   const fodder = enemiesFor(map.id, false);
+  if (map.id === "material") {
+    const wolf = fodder.find((e) => e.id === "wolf") ?? fodder[0]!;
+    const pup = { ...wolf, hp: 26, damage: 5, speed: 78, name: "Thornwolf" };
+    const spots = [
+      [36, 48],
+      [42, 49],
+    ];
+    spots.forEach(([tx, ty], i) => {
+      const id = `intro_wolf_${i}`;
+      if (!killed.has(id)) ents.push(enemyEnt(id, pup, tx * TILE, ty * TILE));
+    });
+  }
   const count = map.id === "material" ? 28 : 22;
   for (let i = 0; i < count; i++) {
     const id = `${map.id}_m_${i}`;

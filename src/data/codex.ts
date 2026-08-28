@@ -411,18 +411,16 @@ export function classById(id: string): ClassDef {
 
 export function defaultAbilities(classId: string): Abilities {
   const cls = classById(classId);
-  const order: AbilityId[] = ["str", "dex", "con", "int", "wis", "cha"];
-  const ranked = [...order].sort((a, b) => {
-    if (a === cls.primary) return -1;
-    if (b === cls.primary) return 1;
-    if (a === cls.caster) return -1;
-    if (b === cls.caster) return 1;
-    if (a === "con") return -1;
-    if (b === "con") return 1;
-    return 0;
-  });
-  const scores = { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 };
-  ranked.forEach((k, i) => {
+  const scores: Abilities = { str: 8, dex: 8, con: 8, int: 8, wis: 8, cha: 8 };
+  const priority: AbilityId[] = [];
+  const push = (id: AbilityId) => {
+    if (!priority.includes(id)) priority.push(id);
+  };
+  push(cls.primary);
+  if (cls.caster) push(cls.caster);
+  push("con");
+  (["dex", "str", "wis", "int", "cha"] as AbilityId[]).forEach(push);
+  priority.forEach((k, i) => {
     scores[k] = STANDARD_ARRAY[i] ?? 8;
   });
   return scores;

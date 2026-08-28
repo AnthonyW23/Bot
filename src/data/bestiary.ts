@@ -1,12 +1,12 @@
 import type { EnemyDef, PlaneId } from "../types";
 
 export const ENEMIES: EnemyDef[] = [
-  { id: "wolf", name: "Thornwolf", plane: "material", hp: 38, speed: 95, damage: 7, range: 28, aggro: 220, xp: 18, color: "#6b5a4a", tags: ["beast"] },
-  { id: "bandit", name: "Ashenford Cutpurse", plane: "material", hp: 46, speed: 78, damage: 8, range: 32, aggro: 200, xp: 22, color: "#5c4638", tags: ["humanoid"] },
-  { id: "skeleton", name: "Gate Wight", plane: "material", hp: 52, speed: 62, damage: 9, range: 30, aggro: 240, xp: 26, color: "#cfc6b0", tags: ["undead"] },
+  { id: "wolf", name: "Thornwolf", plane: "material", hp: 38, speed: 95, damage: 7, range: 28, aggro: 220, xp: 18, color: "#e8c48a", tags: ["beast"] },
+  { id: "bandit", name: "Ashenford Cutpurse", plane: "material", hp: 46, speed: 78, damage: 8, range: 32, aggro: 200, xp: 22, color: "#d45c3a", tags: ["humanoid"] },
+  { id: "skeleton", name: "Gate Wight", plane: "material", hp: 52, speed: 62, damage: 9, range: 30, aggro: 240, xp: 26, color: "#f0ece0", tags: ["undead"] },
   { id: "wraith", name: "Warden-Wraith", plane: "material", hp: 220, speed: 70, damage: 14, range: 46, aggro: 340, xp: 160, color: "#9aa7c4", tags: ["undead", "planar"], boss: true, shard: "material" },
-  { id: "sprite", name: "Spite Sprite", plane: "feywild", hp: 28, speed: 120, damage: 6, range: 26, aggro: 210, xp: 16, color: "#7ec8a3", tags: ["fey"] },
-  { id: "blinkdog", name: "Blink Hound", plane: "feywild", hp: 44, speed: 130, damage: 8, range: 28, aggro: 240, xp: 24, color: "#d4b46a", tags: ["fey", "beast"] },
+  { id: "sprite", name: "Spite Sprite", plane: "feywild", hp: 28, speed: 120, damage: 6, range: 26, aggro: 210, xp: 16, color: "#7ef0c8", tags: ["fey"] },
+  { id: "blinkdog", name: "Blink Hound", plane: "feywild", hp: 44, speed: 130, damage: 8, range: 28, aggro: 240, xp: 24, color: "#ffd36a", tags: ["fey", "beast"] },
   { id: "dryad", name: "Thorned Dryad", plane: "feywild", hp: 70, speed: 70, damage: 10, range: 160, aggro: 260, xp: 32, color: "#3d6b4a", tags: ["fey"] },
   { id: "hag", name: "Gilt-Tooth Hag", plane: "feywild", hp: 260, speed: 68, damage: 15, range: 70, aggro: 360, xp: 180, color: "#8a6d34", tags: ["fey"], boss: true, shard: "feywild" },
   { id: "shadow", name: "Hungering Shadow", plane: "shadowfell", hp: 36, speed: 88, damage: 8, range: 26, aggro: 230, xp: 20, color: "#2a3344", tags: ["undead"] },

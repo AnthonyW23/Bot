@@ -135,15 +135,38 @@ export function drawEnt(ctx: CanvasRenderingContext2D, e: Ent, time: number, her
   const bob = Math.sin(time * 8 + e.x) * (e.kind === "player" ? 1.2 : 0.6);
   ctx.translate(0, bob);
   if (e.hurt && e.hurt > 0) ctx.globalAlpha = 0.55 + Math.sin(time * 40) * 0.25;
-  if (e.kind === "player" && hero) drawHero(ctx, hero);
-  else if (e.kind === "npc") drawFigure(ctx, e.color ?? "#ccc", 0.9, false);
-  else drawFigure(ctx, e.color ?? "#833", e.def?.boss ? 1.35 : 1, true);
+  if (e.kind === "player" && hero) {
+    ctx.strokeStyle = "#c6a15b";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, e.r * 0.7, e.r * 1.15, e.r * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    drawHero(ctx, hero);
+  } else if (e.kind === "npc") drawFigure(ctx, e.color ?? "#ccc", 0.9, false);
+  else {
+    ctx.strokeStyle = "#8a2432";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, e.r * 0.75, e.r * 1.2, e.r * 0.45, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    drawFigure(ctx, e.color ?? "#833", e.def?.boss ? 1.45 : 1.15, true);
+  }
   ctx.restore();
-  if (e.kind === "enemy" && e.hp && e.maxHp && e.hp < e.maxHp) {
+  if (e.kind === "player" && hero) {
+    ctx.fillStyle = "#c6a15b";
+    ctx.font = "12px Cinzel, serif";
+    ctx.textAlign = "center";
+    ctx.fillText(hero.name, e.x, e.y - 30);
+  }
+  if (e.kind === "enemy" && e.maxHp) {
     ctx.fillStyle = "#000";
-    ctx.fillRect(e.x - 14, e.y - 28, 28, 4);
+    ctx.fillRect(e.x - 16, e.y - 32, 32, 5);
     ctx.fillStyle = "#a33b3b";
-    ctx.fillRect(e.x - 14, e.y - 28, 28 * (e.hp / e.maxHp), 4);
+    ctx.fillRect(e.x - 16, e.y - 32, 32 * ((e.hp ?? 0) / e.maxHp), 5);
+    ctx.fillStyle = "#ffd7a0";
+    ctx.font = "11px Cinzel, serif";
+    ctx.textAlign = "center";
+    ctx.fillText(e.name ?? "Foe", e.x, e.y - 36);
   }
   if (e.kind === "npc" && e.name) {
     ctx.fillStyle = "#e8dcc4";

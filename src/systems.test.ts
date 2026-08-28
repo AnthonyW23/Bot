@@ -28,6 +28,13 @@ describe("hero creation", () => {
     expect(hero.shrine.plane).toBe("material");
   });
 
+  it("gives warlocks their highest score in Charisma", () => {
+    const w = applyRace(defaultAbilities("warlock"), "tiefling");
+    expect(w.cha).toBeGreaterThanOrEqual(w.str);
+    expect(w.cha).toBeGreaterThanOrEqual(w.con);
+    expect(w.cha).toBeGreaterThanOrEqual(17);
+  });
+
   it("applies racial ability bonuses", () => {
     const base = defaultAbilities("fighter");
     const human = applyRace(base, "human");
