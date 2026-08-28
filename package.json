@@ -1,0 +1,19 @@
+{
+  "name": "veilbreaker",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A planar action RPG in the browser — D&D races and classes, use-based skills, and a shattered cosmos.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3",
+    "vitest": "^3.2.4"
+  }
+}

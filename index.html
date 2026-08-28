@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Veilbreaker</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game"></canvas>
+
+      <div id="vignette"></div>
+
+      <div id="hud" class="hidden">
+        <div class="hud-left">
+          <canvas class="portrait-frame" id="hud-portrait" width="72" height="72"></canvas>
+          <div class="bars">
+            <div class="bar hp"><span class="bar-fill" id="hp-fill"></span><em id="hp-text"></em></div>
+            <div class="bar mana"><span class="bar-fill" id="mana-fill"></span><em id="mana-text"></em></div>
+            <div class="bar stam"><span class="bar-fill" id="stam-fill"></span><em id="stam-text"></em></div>
+          </div>
+        </div>
+        <div class="hud-center">
+          <div id="hotbar"></div>
+          <div id="cast-bar" class="hidden"><span></span></div>
+        </div>
+        <div class="hud-right">
+          <div id="minimap"><canvas id="minimap-canvas" width="180" height="180"></canvas></div>
+          <div id="quest-tracker"></div>
+        </div>
+        <div id="xp-bar"><span class="bar-fill" id="xp-fill"></span><em id="xp-text"></em></div>
+        <div id="plane-badge"></div>
+        <div id="toast-stack"></div>
+        <div id="interact-prompt" class="hidden"></div>
+        <div id="damage-layer"></div>
+      </div>
+
+      <section id="title-screen" class="screen">
+        <div class="title-constellation" aria-hidden="true"></div>
+        <div class="title-plate">
+          <p class="title-kicker">A planar action chronicle</p>
+          <h1>Veilbreaker</h1>
+          <p class="title-sub">The First Gate is cracked. Five planes bleed into one.</p>
+          <div class="title-actions">
+            <button id="btn-new" class="seal-btn">Begin a Chronicle</button>
+            <button id="btn-continue" class="seal-btn ghost hidden">Continue</button>
+          </div>
+          <p class="title-hint">WASD to move · Mouse to aim · Left click to strike · Space to dodge</p>
+        </div>
+      </section>
+
+      <section id="create-screen" class="screen hidden">
+        <div class="sheet">
+          <header class="sheet-head">
+            <h2>Who walks the planes?</h2>
+            <p>Choose a lineage and a calling. Both are drawn from the Dungeons &amp; Dragons SRD.</p>
+          </header>
+          <div class="sheet-grid">
+            <div class="sheet-col">
+              <label class="ink-label" for="hero-name">Name</label>
+              <input id="hero-name" maxlength="24" placeholder="A name the planes will remember" />
+              <h3>Race</h3>
+              <div id="race-list" class="choice-list"></div>
+            </div>
+            <div class="sheet-col">
+              <h3>Class</h3>
+              <div id="class-list" class="choice-list"></div>
+            </div>
+            <div class="sheet-col portrait-col">
+              <canvas id="create-portrait" width="280" height="340"></canvas>
+              <div id="create-summary"></div>
+              <h3>Ability scores</h3>
+              <p class="muted">Standard array, arranged for your class. Swap two scores if you wish.</p>
+              <div id="ability-swap"></div>
+              <button id="btn-embark" class="seal-btn" disabled>Enter Ashenford</button>
+              <button id="btn-back-title" class="text-btn">Return</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div id="dialogue" class="overlay hidden">
+        <div class="dialogue-frame">
+          <div class="dialogue-portrait" id="dlg-portrait"></div>
+          <div class="dialogue-body">
+            <h3 id="dlg-speaker"></h3>
+            <p id="dlg-text"></p>
+            <div id="dlg-options"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="inventory" class="overlay hidden panel-overlay">
+        <div class="codex-panel wide">
+          <h2>Satchel &amp; Steel</h2>
+          <div class="inv-layout">
+            <div id="equip-slots"></div>
+            <div id="inv-grid"></div>
+            <div id="inv-detail"></div>
+          </div>
+          <p class="panel-hint">I close · Click to equip · Right-click to drop</p>
+        </div>
+      </div>
+
+      <div id="skills" class="overlay hidden panel-overlay">
+        <div class="codex-panel wide">
+          <h2>The Lattice</h2>
+          <p class="muted" id="skill-points-label"></p>
+          <div class="skills-layout">
+            <div id="skill-tree-wrap">
+              <svg id="skill-lines"></svg>
+              <div id="skill-nodes"></div>
+            </div>
+            <div id="skill-list"></div>
+          </div>
+          <p class="panel-hint">K close · Click a connected node to spend a skill point</p>
+        </div>
+      </div>
+
+      <div id="journal" class="overlay hidden panel-overlay">
+        <div class="codex-panel">
+          <h2>Chronicle</h2>
+          <div id="journal-body"></div>
+          <p class="panel-hint">J close</p>
+        </div>
+      </div>
+
+      <div id="character-sheet" class="overlay hidden panel-overlay">
+        <div class="codex-panel">
+          <h2>The Measure of You</h2>
+          <div id="char-body"></div>
+          <p class="panel-hint">C close</p>
+        </div>
+      </div>
+
+      <div id="map-overlay" class="overlay hidden panel-overlay">
+        <div class="codex-panel">
+          <h2 id="map-title">The Known Planes</h2>
+          <canvas id="map-canvas" width="720" height="520"></canvas>
+          <p class="panel-hint">M close</p>
+        </div>
+      </div>
+
+      <div id="pause" class="overlay hidden">
+        <div class="pause-plate">
+          <h2>The world holds its breath</h2>
+          <button id="btn-resume" class="seal-btn">Resume</button>
+          <button id="btn-save" class="seal-btn ghost">Save Chronicle</button>
+          <button id="btn-title" class="text-btn">Abandon to title</button>
+        </div>
+      </div>
+
+      <div id="death" class="overlay hidden">
+        <div class="pause-plate">
+          <h2>You fall between worlds</h2>
+          <p>A shrine remembers your name. Gold scatters. The shards remain yours.</p>
+          <button id="btn-respawn" class="seal-btn">Wake at the last shrine</button>
+        </div>
+      </div>
+
+      <div id="victory" class="overlay hidden">
+        <div class="pause-plate">
+          <h2>The Gate holds</h2>
+          <p id="victory-text"></p>
+          <button id="btn-victory-title" class="seal-btn">Return to title</button>
+        </div>
+      </div>
+
+      <div id="levelup" class="hidden">
+        <div class="levelup-burst">You grow stronger</div>
+      </div>
+
+      <div id="tooltip" class="hidden"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
