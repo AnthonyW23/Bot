@@ -50,8 +50,10 @@ export class World3D {
   private tmp2 = new THREE.Vector2();
 
   constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    // No MSAA and a capped internal resolution keep the frame rate high even on
+    // machines that fall back to software WebGL (SwiftShader) with no GPU.
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+    this.renderer.setPixelRatio(1);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(48, 1, 1, 9000);
     this.hemi = new THREE.HemisphereLight(0xffffff, 0x2a2622, 0.95);
@@ -66,7 +68,10 @@ export class World3D {
     const h = window.innerHeight;
     this.camera.aspect = w / Math.max(1, h);
     this.camera.updateProjectionMatrix();
-    this.renderer.setSize(w, h, false);
+    // Cap the longest edge of the drawing buffer; CSS upscales it to full size.
+    const cap = 960;
+    const scale = Math.min(1, cap / Math.max(w, h));
+    this.renderer.setSize(Math.round(w * scale), Math.round(h * scale), false);
   }
 
   private buildStatic(map: PlaneWorld): THREE.Group {
