@@ -209,6 +209,7 @@ export interface Hero {
   maxStamina: number;
   skills: Record<SkillId, SkillState>;
   treeUnlocked: string[];
+  hotbar: (string | null)[];
   skillPoints: number;
   attributePoints: number;
   inventory: Item[];

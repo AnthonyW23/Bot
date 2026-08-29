@@ -129,8 +129,10 @@ function building(m: PlaneWorld, x: number, y: number, w: number, h: number, doo
 
 export function generatePlane(id: PlaneId, seed: number): PlaneWorld {
   const rng = new RNG(seed + id.length * 997);
-  const w = 96;
-  const h = 96;
+  // The Material Plane is the demo village: a compact map keeps the 3D scene
+  // small and fast. Other planes stay large.
+  const w = id === "material" ? 40 : 96;
+  const h = id === "material" ? 40 : 96;
   const m: PlaneWorld = {
     id,
     w,
@@ -163,39 +165,46 @@ function scatterTrees(m: PlaneWorld, rng: RNG, dens: number, t: Tile = 1): void 
 }
 
 function genMaterial(m: PlaneWorld, rng: RNG): void {
-  scatterTrees(m, rng, 0.14);
-  rect(m, 18, 40, 16, 16, 0);
-  path(m, 24, 48, 72, 48);
-  path(m, 24, 48, 40, 22);
-  path(m, 24, 48, 36, 72);
-  path(m, 24, 48, 14, 62);
-  building(m, 23, 46, 5, 5, "s");
-  building(m, 26, 44, 4, 4, "s");
-  building(m, 20, 43, 4, 4, "s");
-  building(m, 25, 49, 4, 3, "n");
-  rect(m, 20, 50, 16, 7, 0);
-  circle(m, 72, 48, 6, 0);
-  rect(m, 70, 46, 5, 5, 1);
-  rect(m, 71, 47, 3, 3, 0);
-  m.tiles[idx(m.w, 72, 50)] = 0;
-  circle(m, 40, 22, 4, 0);
-  circle(m, 36, 72, 4, 0);
-  circle(m, 14, 62, 3, 0);
-  circle(m, 18, 40, 3, 3);
-  circle(m, 18, 40, 2, 0);
-  circle(m, 50, 70, 4, 0);
-  m.spawn = { x: 25.2 * TILE, y: 52.4 * TILE };
-  m.home = { x: 25.2 * TILE, y: 52.6 * TILE };
+  // Compact 40x40 village of Ashenford. Central square, a cluster of cottages,
+  // paths out to four planar doors, a shrine, a chest, and a bandit corner.
+  scatterTrees(m, rng, 0.06);
+  // Clear a generous walkable heart so the village never boxes the player in.
+  rect(m, 8, 8, 24, 24, 0);
+  // Central square + connecting lanes.
+  rect(m, 16, 18, 10, 8, 0);
+  path(m, 20, 22, 34, 22); // east lane to the Gate
+  path(m, 20, 22, 20, 6); // north lane to the standing stones
+  path(m, 20, 22, 20, 35); // south lane to the well
+  path(m, 20, 22, 7, 32); // southwest lane to the infernal circle
+  path(m, 20, 22, 7, 10); // northwest lane to the chapel crater
+  // Cottages around the square (walls with a doorway).
+  building(m, 14, 15, 4, 4, "s");
+  building(m, 22, 14, 4, 4, "s");
+  building(m, 26, 20, 4, 4, "w");
+  building(m, 14, 27, 4, 4, "n");
+  building(m, 24, 27, 4, 4, "n");
+  // The First Gate courtyard to the east.
+  circle(m, 34, 22, 3, 0);
+  // Planar door clearings.
+  circle(m, 20, 6, 3, 0);
+  circle(m, 20, 35, 3, 0);
+  circle(m, 7, 32, 3, 0);
+  circle(m, 7, 10, 3, 3);
+  circle(m, 7, 10, 2, 0);
+  // Bandit corner.
+  circle(m, 32, 33, 3, 0);
+  m.spawn = { x: 20 * TILE, y: 24 * TILE };
+  m.home = { x: 20 * TILE, y: 24 * TILE };
   m.landmarks = [
-    { id: "inn", name: "The Cracked Stein", x: 24.5, y: 51.2, kind: "building" },
-    { id: "gate", name: "The First Gate", x: 72, y: 48, kind: "quest" },
-    { id: "stones", name: "Standing Stones", x: 40, y: 22, kind: "portal", plane: "feywild" },
-    { id: "well", name: "Well of Silence", x: 36, y: 72, kind: "portal", plane: "shadowfell" },
-    { id: "circle", name: "Infernal Circle", x: 14, y: 62, kind: "portal", plane: "hells" },
-    { id: "crater", name: "Chapel Crater", x: 18, y: 40, kind: "portal", plane: "abyss" },
-    { id: "shrine_m", name: "Ashenford Shrine", x: 26.4, y: 53.2, kind: "shrine" },
-    { id: "camp", name: "Bandit Camp", x: 50, y: 70, kind: "quest" },
-    { id: "chest_m", name: "Waycache", x: 32, y: 44, kind: "chest" },
+    { id: "inn", name: "The Cracked Stein", x: 20, y: 20, kind: "building" },
+    { id: "gate", name: "The First Gate", x: 34, y: 22, kind: "quest" },
+    { id: "stones", name: "Standing Stones", x: 20, y: 6, kind: "portal", plane: "feywild" },
+    { id: "well", name: "Well of Silence", x: 20, y: 35, kind: "portal", plane: "shadowfell" },
+    { id: "circle", name: "Infernal Circle", x: 7, y: 32, kind: "portal", plane: "hells" },
+    { id: "crater", name: "Chapel Crater", x: 7, y: 10, kind: "portal", plane: "abyss" },
+    { id: "shrine_m", name: "Ashenford Shrine", x: 23, y: 25, kind: "shrine" },
+    { id: "camp", name: "Bandit Camp", x: 32, y: 33, kind: "quest" },
+    { id: "chest_m", name: "Waycache", x: 17, y: 24, kind: "chest" },
   ];
 }
 
@@ -304,15 +313,15 @@ export function spawnEntities(map: PlaneWorld, seed: number, killed: Set<string>
     const wolf = fodder.find((e) => e.id === "wolf") ?? fodder[0]!;
     const pup = { ...wolf, hp: 26, damage: 5, speed: 78, name: "Thornwolf" };
     const spots = [
-      [36, 48],
-      [42, 49],
+      [26, 22],
+      [28, 24],
     ];
     spots.forEach(([tx, ty], i) => {
       const id = `intro_wolf_${i}`;
       if (!killed.has(id)) ents.push(enemyEnt(id, pup, tx * TILE, ty * TILE));
     });
   }
-  const count = map.id === "material" ? 28 : 22;
+  const count = map.id === "material" ? 12 : 22;
   for (let i = 0; i < count; i++) {
     const id = `${map.id}_m_${i}`;
     if (killed.has(id)) continue;
@@ -337,12 +346,12 @@ export function spawnEntities(map: PlaneWorld, seed: number, killed: Set<string>
     const bid = "bandit_leader";
     if (!killed.has(bid)) {
       const d = { ...enemiesFor("material", false)[1]!, id: "bandit_leader", name: "Red-Scarf Captain", hp: 90, damage: 12, xp: 70, boss: true };
-      ents.push(enemyEnt(bid, d, 50 * TILE, 70 * TILE, true));
+      ents.push(enemyEnt(bid, d, 32 * TILE, 33 * TILE, true));
     }
     const hid = "blink_cross";
     if (!killed.has(hid)) {
       const d = enemiesFor("feywild", false).find((e) => e.id === "blinkdog")!;
-      ents.push(enemyEnt(hid, { ...d, name: "Crossed Blink Hound" }, 40 * TILE, 26 * TILE));
+      ents.push(enemyEnt(hid, { ...d, name: "Crossed Blink Hound" }, 20 * TILE, 9 * TILE));
     }
   }
   return ents;

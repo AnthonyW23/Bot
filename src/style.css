@@ -45,6 +45,31 @@ input {
   cursor: crosshair;
 }
 
+#overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#fps {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.8rem;
+  z-index: 3;
+  font-family: Cinzel, serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  background: rgba(12, 7, 9, 0.72);
+  border: 1px solid var(--line);
+  padding: 0.2rem 0.55rem;
+  pointer-events: none;
+}
+
 #vignette {
   pointer-events: none;
   position: absolute;
@@ -629,6 +654,80 @@ input {
 .tree-node.locked {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+#ability-binder {
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.7rem;
+}
+
+#ability-binder h3 {
+  font-family: Cinzel, serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  margin: 0 0 0.5rem;
+}
+
+.bind-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid rgba(198, 161, 91, 0.18);
+  margin-bottom: 0.35rem;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.bind-row.locked {
+  opacity: 0.5;
+}
+
+.bind-name {
+  flex: 1;
+  font-size: 0.98rem;
+}
+
+.bind-name small {
+  display: block;
+  color: var(--parchment-dim);
+  font-size: 0.82rem;
+}
+
+.bind-slots {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.bind-slot {
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--gold-dim);
+  background: var(--ink-2);
+  color: var(--parchment);
+  cursor: pointer;
+  font-family: Cinzel, serif;
+  font-size: 0.8rem;
+}
+
+.bind-slot:hover:not(:disabled) {
+  border-color: var(--gold);
+}
+
+.bind-slot.active {
+  background: radial-gradient(circle at 30% 20%, #a33b3b, var(--blood-deep));
+  border-color: var(--gold);
+  color: var(--parchment);
+}
+
+.bind-slot:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hotkey.empty {
+  opacity: 0.4;
 }
 
 .slot,

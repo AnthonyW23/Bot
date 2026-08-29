@@ -3,9 +3,11 @@ import { generateItem, itemPower, rollRarity, startingGear } from "./data/loot";
 import { RNG } from "./engine";
 import {
   addShard,
+  assignHotbar,
   attackDamage,
   canUnlock,
   createHero,
+  defaultHotbar,
   grantSkillXp,
   grantXp,
   optionAllowed,
@@ -13,7 +15,7 @@ import {
   unlockNode,
 } from "./systems";
 import { generatePlane, tileAt } from "./world";
-import { applyRace, defaultAbilities } from "./data/codex";
+import { RACES, abilityRegistry, applyRace, defaultAbilities, racialAbility } from "./data/codex";
 import { xpToLevel, xpToSkill } from "./engine";
 
 describe("hero creation", () => {
@@ -118,6 +120,45 @@ describe("quests, dialogue, lattice", () => {
     expect(addShard(hero, "feywild")).toBe(true);
     expect(addShard(hero, "feywild")).toBe(false);
     expect(hero.shards).toEqual(["feywild"]);
+  });
+});
+
+describe("racial abilities and hotbar", () => {
+  it("gives every race a signature ability", () => {
+    for (const r of RACES) {
+      const a = racialAbility(r.id);
+      expect(a).toBeDefined();
+      expect(a!.id.length).toBeGreaterThan(2);
+      expect(a!.name.length).toBeGreaterThan(2);
+    }
+  });
+
+  it("seeds the hotbar with class abilities and the racial ability", () => {
+    const hero = createHero("A", "elf", "fighter", applyRace(defaultAbilities("fighter"), "elf"));
+    expect(hero.hotbar.length).toBe(6);
+    expect(hero.hotbar).toContain("second_wind");
+    expect(hero.hotbar).toContain("elf_feystep");
+  });
+
+  it("exposes lattice-granted abilities in the registry", () => {
+    const reg = abilityRegistry("wizard", "human").map((a) => a.id);
+    expect(reg).toContain("fireball");
+    expect(reg).toContain("human_resolve");
+  });
+
+  it("binds an ability to a slot without duplicating it", () => {
+    const hero = createHero("A", "dwarf", "rogue", applyRace(defaultAbilities("rogue"), "dwarf"));
+    assignHotbar(hero, 4, "dwarf_stone");
+    expect(hero.hotbar[4]).toBe("dwarf_stone");
+    assignHotbar(hero, 5, "dwarf_stone");
+    expect(hero.hotbar[5]).toBe("dwarf_stone");
+    expect(hero.hotbar[4]).toBeNull();
+  });
+
+  it("builds a full six-slot default hotbar", () => {
+    const bar = defaultHotbar("cleric", "gnome");
+    expect(bar.length).toBe(6);
+    expect(bar.filter((x) => x !== null).length).toBeGreaterThanOrEqual(2);
   });
 });
 

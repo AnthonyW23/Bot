@@ -401,6 +401,83 @@ export const CLASSES: ClassDef[] = [
   },
 ];
 
+export const RACIAL_ABILITIES: Record<string, AbilityDef> = {
+  human: ab("human_resolve", "Human Resolve", "Steel yourself: heal and sharpen your next blows.", "", {
+    mana: 0,
+    stamina: 0,
+    cooldown: 16,
+  }),
+  elf: ab("elf_feystep", "Fey Step", "Blink through starlight to your cursor.", "", {
+    mana: 0,
+    stamina: 8,
+    cooldown: 8,
+    range: 220,
+  }),
+  dwarf: ab("dwarf_stone", "Stone Endurance", "Harden like living rock: brief damage reduction and mending.", "", {
+    mana: 0,
+    stamina: 0,
+    cooldown: 18,
+  }),
+  halfling: ab("halfling_luck", "Halfling Luck", "Fortune shrugs off harm and restores your wind.", "", {
+    mana: 0,
+    stamina: 0,
+    cooldown: 12,
+  }),
+  dragonborn: ab("dragon_breath", "Draconic Breath", "Exhale a cone of ancestral fire.", "", {
+    mana: 0,
+    stamina: 12,
+    cooldown: 10,
+    range: 200,
+  }),
+  gnome: ab("gnome_cunning", "Cunning Ward", "Illusions restore mana and turn a blow aside.", "", {
+    mana: 0,
+    stamina: 0,
+    cooldown: 14,
+  }),
+  halfelf: ab("halfelf_charm", "Charming Word", "A honeyed word stuns nearby foes.", "", {
+    mana: 0,
+    stamina: 0,
+    cooldown: 14,
+    range: 180,
+  }),
+  halforc: ab("halforc_savage", "Savage Blow", "A brutal strike that lands far harder.", "", {
+    mana: 0,
+    stamina: 14,
+    cooldown: 9,
+  }),
+  tiefling: ab("tiefling_rebuke", "Hellish Rebuke", "Answer pain with a burst of infernal fire.", "", {
+    mana: 0,
+    stamina: 0,
+    cooldown: 10,
+    range: 150,
+  }),
+};
+
+export function racialAbility(raceId: string): AbilityDef | undefined {
+  return RACIAL_ABILITIES[raceId];
+}
+
+// Every ability the hero can bind to the hotbar: class abilities, abilities
+// granted by lattice nodes, and the race's signature ability.
+export function abilityRegistry(classId: string, raceId: string): AbilityDef[] {
+  const cls = classById(classId);
+  const list: AbilityDef[] = [...cls.abilities];
+  const seen = new Set(list.map((a) => a.id));
+  for (const n of cls.tree) {
+    if (n.grantAbility && !seen.has(n.grantAbility)) {
+      seen.add(n.grantAbility);
+      list.push(ab(n.grantAbility, n.name, n.desc, "", { requiresNode: n.id }));
+    }
+  }
+  const racial = racialAbility(raceId);
+  if (racial && !seen.has(racial.id)) list.push(racial);
+  return list;
+}
+
+export function abilityById(classId: string, raceId: string, id: string): AbilityDef | undefined {
+  return abilityRegistry(classId, raceId).find((a) => a.id === id);
+}
+
 export function raceById(id: string): RaceDef {
   return RACES.find((r) => r.id === id) ?? RACES[0]!;
 }

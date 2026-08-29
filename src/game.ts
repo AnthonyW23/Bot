@@ -1,16 +1,19 @@
-import { ABILITY_NAMES, applyRace, classById, defaultAbilities } from "./data/codex";
+import { ABILITY_NAMES, abilityById, applyRace, defaultAbilities } from "./data/codex";
 import { generateItem } from "./data/loot";
 import { enemyById } from "./data/bestiary";
 import { QUEST_TEMPLATES, QUESTS, WANDERER_LINES, npcById, questById } from "./data/story";
 import { AudioBus, Camera, Input, RNG, TILE, ang, burst, dist } from "./engine";
-import { drawBigMap, drawEnt, drawMinimap, drawParticles, drawPortrait, drawWorld, resize } from "./render";
+import { drawBigMap, drawMinimap, drawPortrait } from "./render";
+import { World3D } from "./render3d";
 import {
   addShard,
   advanceQuest,
+  assignHotbar,
   attackDamage,
   completeQuest,
   createHero,
   derived,
+  ensureHotbar,
   equipItem,
   grantSkillXp,
   grantXp,
@@ -52,7 +55,12 @@ for (const p of planeIds) maps.set(p, generatePlane(p, seed));
 
 export class Game {
   canvas: HTMLCanvasElement;
-  ctx: CanvasRenderingContext2D;
+  r3d: World3D;
+  fxCanvas: HTMLCanvasElement;
+  fxCtx: CanvasRenderingContext2D;
+  fpsEl: HTMLElement;
+  fpsSmooth = 60;
+  fpsAcc = 0;
   input: Input;
   cam = new Camera();
   audio = new AudioBus();
@@ -78,6 +86,7 @@ export class Game {
   wildT = 0;
   twin = false;
   stealth = 0;
+  stoneT = 0;
   shopStock: Item[] = [];
   drops: Record<string, Item> = {};
   saveAcc = 0;
@@ -86,10 +95,13 @@ export class Game {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d")!;
+    this.r3d = new World3D(canvas);
+    this.fxCanvas = document.getElementById("overlay") as HTMLCanvasElement;
+    this.fxCtx = this.fxCanvas.getContext("2d")!;
+    this.fpsEl = document.getElementById("fps") as HTMLElement;
     this.input = new Input(canvas);
-    window.addEventListener("resize", () => resize(canvas));
-    resize(canvas);
+    window.addEventListener("resize", () => this.onResize());
+    this.onResize();
     bindTitle(
       () => this.openCreate(),
       () => this.continueGame(),
@@ -105,6 +117,12 @@ export class Game {
     this.pickers = fillCreate(() => this.refreshCreate());
     this.refreshCreate();
     this.loop(0);
+  }
+
+  onResize(): void {
+    this.r3d.resize();
+    this.fxCanvas.width = window.innerWidth;
+    this.fxCanvas.height = window.innerHeight;
   }
 
   toTitle(): void {
@@ -184,6 +202,7 @@ export class Game {
     const s = loadGame();
     if (!s) return;
     this.hero = s.hero;
+    ensureHotbar(this.hero);
     this.killed = new Set(s.killed);
     this.looted = new Set(s.looted);
     this.time = s.time;
@@ -198,6 +217,7 @@ export class Game {
     const h = this.hero!;
     h.plane = plane;
     const map = maps.get(plane)!;
+    this.r3d.setMap(map);
     if (atSpawn) {
       h.x = map.spawn.x;
       h.y = map.spawn.y;
@@ -308,7 +328,7 @@ export class Game {
     else closeDialogue();
     const h = this.hero;
     if (h && o === "inv") renderInventory(h, (it) => this.equip(it), (it) => this.drop(it));
-    if (h && o === "skills") renderSkills(h, (id) => this.unlock(id));
+    if (h && o === "skills") renderSkills(h, (id) => this.unlock(id), (slot, abilityId) => this.bindHotbar(slot, abilityId));
     if (h && o === "journal") renderJournal(h);
     if (h && o === "char") renderCharacter(h, (id) => this.spend(id));
     if (h && o === "map") {
@@ -336,7 +356,15 @@ export class Game {
       this.audio.level();
       toast("The lattice answers.");
     }
-    renderSkills(this.hero, (n) => this.unlock(n));
+    renderSkills(this.hero, (n) => this.unlock(n), (slot, abilityId) => this.bindHotbar(slot, abilityId));
+  }
+
+  bindHotbar(slot: number, abilityId: string | null): void {
+    if (!this.hero) return;
+    assignHotbar(this.hero, slot, abilityId);
+    this.audio.swing();
+    renderSkills(this.hero, (n) => this.unlock(n), (s, a) => this.bindHotbar(s, a));
+    updateHud(this.hero);
   }
 
   spend(id: AbilityId): void {
@@ -346,13 +374,26 @@ export class Game {
   }
 
   loop = (ts: number): void => {
-    const dt = this.prev ? Math.min(0.033, (ts - this.prev) / 1000) : 0.016;
+    const rawDt = this.prev ? (ts - this.prev) / 1000 : 0.016;
+    const dt = this.prev ? Math.min(0.033, rawDt) : 0.016;
     this.prev = ts;
     this.time += dt;
     if (this.screen === "play" && this.hero) this.update(dt);
     this.draw();
     this.input.endFrame();
+    this.trackFps(rawDt);
     requestAnimationFrame(this.loop);
+  };
+
+  trackFps(rawDt: number): void {
+    if (rawDt > 0) this.fpsSmooth = this.fpsSmooth * 0.9 + (1 / rawDt) * 0.1;
+    this.fpsAcc += rawDt;
+    const playing = this.screen === "play";
+    this.fpsEl.classList.toggle("hidden", !playing);
+    if (playing && this.fpsAcc > 0.25) {
+      this.fpsAcc = 0;
+      this.fpsEl.textContent = `${Math.round(this.fpsSmooth)} FPS`;
+    }
   };
 
   update(dt: number): void {
@@ -367,6 +408,7 @@ export class Game {
     this.rageT = Math.max(0, this.rageT - dt);
     this.wildT = Math.max(0, this.wildT - dt);
     this.stealth = Math.max(0, this.stealth - dt);
+    this.stoneT = Math.max(0, this.stoneT - dt);
     h.flags._inspire = this.inspireT > 0;
     h.flags._rage = this.rageT > 0;
     h.flags._wild = this.wildT > 0;
@@ -397,17 +439,16 @@ export class Game {
     }
     if (!sprint) h.stamina = Math.min(h.maxStamina, h.stamina + dt * 22);
     h.mana = Math.min(h.maxMana, h.mana + dt * 3.2);
-    const aim = this.cam.world(this.input.mouse.x, this.input.mouse.y);
+    const ground = this.r3d.screenToGround(this.input.mouse.x, this.input.mouse.y, this.canvas.width, this.canvas.height);
+    const aim = ground ?? { x: h.x + Math.cos(h.facing) * 100, y: h.y + Math.sin(h.facing) * 100 };
     h.facing = ang(h, aim);
     if (tileAt(map, h.x, h.y) === 3) h.hp -= dt * 8;
     if (tileAt(map, h.x, h.y) === 2) h.stamina = Math.max(0, h.stamina - dt * 10);
 
     if ((this.input.mouse.clicked || this.input.mouse.down) && this.atkCd <= 0) this.primary(aim);
     if (this.input.just(" ") && h.stamina >= 18) this.doDodge(mx, my);
-    const cls = classById(h.classId);
-    cls.abilities.forEach((a, i) => {
-      const key = String(i + 1);
-      if (this.input.just(key)) this.cast(a.id, aim);
+    h.hotbar.forEach((id, i) => {
+      if (id && this.input.just(String(i + 1))) this.cast(id, aim);
     });
 
     this.updateEnemies(dt, map);
@@ -528,8 +569,7 @@ export class Game {
 
   cast(id: string, aim: { x: number; y: number }): void {
     const h = this.hero!;
-    const cls = classById(h.classId);
-    const def = cls.abilities.find((a) => a.id === id);
+    const def = abilityById(h.classId, h.raceId, id);
     if (!def) return;
     if (def.requiresNode && !hasNode(h, def.requiresNode)) {
       toast("The lattice does not yet open that path.");
@@ -590,6 +630,99 @@ export class Game {
     if (id === "empty") {
       this.invuln = 1.4;
       toast("Nothing can hold nothing.");
+      return;
+    }
+    if (id === "human_resolve") {
+      h.hp = Math.min(h.maxHp, h.hp + 14 + h.level * 2);
+      this.inspireT = 6;
+      burst(this.parts, h.x, h.y, "#c6a15b", 12);
+      toast("Human resolve steels your blows.");
+      return;
+    }
+    if (id === "elf_feystep") {
+      const a = ang(h, aim);
+      const dummy: Ent = { id: "p", kind: "player", x: h.x, y: h.y, r: 12 };
+      tryMove(maps.get(h.plane)!, dummy, Math.cos(a) * 160, Math.sin(a) * 160);
+      h.x = dummy.x;
+      h.y = dummy.y;
+      this.invuln = Math.max(this.invuln, 0.3);
+      burst(this.parts, h.x, h.y, "#7ec8a3", 16);
+      toast("Fey Step.");
+      return;
+    }
+    if (id === "dwarf_stone") {
+      this.stoneT = 6;
+      h.hp = Math.min(h.maxHp, h.hp + 10);
+      burst(this.parts, h.x, h.y, "#8aa0b8", 12);
+      toast("Stone endures.");
+      return;
+    }
+    if (id === "halfling_luck") {
+      this.invuln = Math.max(this.invuln, 1);
+      this.dodge = 0.2;
+      h.stamina = h.maxStamina;
+      toast("Luck turns the blade aside.");
+      return;
+    }
+    if (id === "dragon_breath") {
+      const a = h.facing;
+      const tx = h.x + Math.cos(a) * 120;
+      const ty = h.y + Math.sin(a) * 120;
+      burst(this.parts, tx, ty, "#e23a2e", 24);
+      this.cam.shake = 10;
+      for (const e of this.ents) {
+        if (e.kind !== "enemy" || (e.hp ?? 0) <= 0) continue;
+        const dd = dist(h, e);
+        let da = Math.abs(ang(h, e) - a);
+        while (da > Math.PI) da = Math.abs(da - Math.PI * 2);
+        if (dd < 220 && da < 0.6) {
+          const { dmg, crit } = attackDamage(h, rng);
+          this.hurt(e, Math.round(dmg * 1.25), crit);
+        }
+      }
+      toast("Draconic breath.");
+      return;
+    }
+    if (id === "gnome_cunning") {
+      h.mana = Math.min(h.maxMana, h.mana + 20);
+      this.invuln = Math.max(this.invuln, 0.8);
+      burst(this.parts, h.x, h.y, "#6ec1ff", 12);
+      toast("A cunning ward shimmers.");
+      return;
+    }
+    if (id === "halfelf_charm") {
+      let any = false;
+      for (const e of this.ents) {
+        if (e.kind === "enemy" && (e.hp ?? 0) > 0 && dist(h, e) < 180) {
+          e.stunned = 2;
+          any = true;
+        }
+      }
+      toast(any ? "A charming word stills them." : "No one near to charm.");
+      return;
+    }
+    if (id === "halforc_savage") {
+      const e = this.nearestEnemy(74);
+      if (e) {
+        const { dmg, crit } = attackDamage(h, rng);
+        this.hurt(e, Math.round(dmg * 1.8), crit);
+      } else {
+        this.meleeHit(aim, false);
+      }
+      this.cam.shake = 9;
+      toast("A savage blow.");
+      return;
+    }
+    if (id === "tiefling_rebuke") {
+      burst(this.parts, h.x, h.y, "#d45c22", 22);
+      this.cam.shake = 8;
+      for (const e of this.ents) {
+        if (e.kind === "enemy" && (e.hp ?? 0) > 0 && dist(h, e) < 150) {
+          const { dmg, crit } = attackDamage(h, rng);
+          this.hurt(e, Math.round(dmg * 1.1), crit);
+        }
+      }
+      toast("Hellish rebuke answers.");
       return;
     }
     if (id === "mark") {
@@ -769,6 +902,7 @@ export class Game {
             let dmg = e.def.damage + (e.hexed ? -2 : 0);
             dmg = Math.max(1, dmg - Math.floor(derived(h).armor * 0.12));
             if (this.rageT > 0) dmg = Math.round(dmg * 0.75);
+            if (this.stoneT > 0) dmg = Math.max(1, Math.round(dmg * 0.6));
             if (treeStat(h, "aura")) dmg = Math.max(1, dmg - treeStat(h, "aura") * 0.15);
             h.hp -= dmg;
             grantSkillXp(h, "defense", 2);
@@ -1069,30 +1203,68 @@ export class Game {
   }
 
   draw(): void {
-    const ctx = this.ctx;
+    const ctx = this.fxCtx;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.clearRect(0, 0, this.fxCanvas.width, this.fxCanvas.height);
     if (this.screen !== "play" || !this.hero) return;
-    const map = maps.get(this.hero.plane)!;
-    ctx.save();
-    this.cam.apply(ctx);
-    drawWorld(ctx, map, this.cam.x, this.cam.y, this.canvas.width, this.canvas.height, this.time);
-    const ordered = [...this.ents].sort((a, b) => a.y - b.y);
-    for (const e of ordered) {
-      if (e.kind === "player") {
-        drawEnt(ctx, { ...e, x: this.hero.x, y: this.hero.y }, this.time, this.hero);
-      } else drawEnt(ctx, e, this.time);
+    const h = this.hero;
+    // Render the 3D world, then paint labels/effects on the 2D overlay above it.
+    this.r3d.sync(this.ents, h, this.time, this.cam.shake);
+    this.r3d.render();
+
+    const w = this.fxCanvas.width;
+    const ht = this.fxCanvas.height;
+    ctx.textAlign = "center";
+
+    // World-space combat particles.
+    for (const p of this.parts) {
+      const s = this.r3d.worldToScreen(p.x, p.y, w, ht, 14);
+      if (!s.visible) continue;
+      ctx.globalAlpha = Math.max(0, p.life / p.max);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(s.x - p.size / 2, s.y - p.size / 2, p.size + 1, p.size + 1);
     }
-    drawParticles(ctx, this.parts);
+    ctx.globalAlpha = 1;
+
+    // Entity nameplates and enemy health bars.
+    for (const e of this.ents) {
+      if (e.kind === "npc" && e.name) {
+        const s = this.r3d.worldToScreen(e.x, e.y, w, ht, e.r * 2 + 26);
+        if (!s.visible) continue;
+        ctx.fillStyle = "#e8dcc4";
+        ctx.font = "12px Cinzel, serif";
+        ctx.fillText(e.name, s.x, s.y);
+      } else if (e.kind === "enemy" && e.maxHp) {
+        const s = this.r3d.worldToScreen(e.x, e.y, w, ht, e.r * 2 + 30);
+        if (!s.visible) continue;
+        ctx.fillStyle = "#000";
+        ctx.fillRect(s.x - 18, s.y, 36, 5);
+        ctx.fillStyle = "#a33b3b";
+        ctx.fillRect(s.x - 18, s.y, 36 * Math.max(0, (e.hp ?? 0) / e.maxHp), 5);
+        ctx.fillStyle = "#ffd7a0";
+        ctx.font = "11px Cinzel, serif";
+        ctx.fillText(e.name ?? "Foe", s.x, s.y - 4);
+      }
+    }
+
+    // Player name.
+    const ps = this.r3d.worldToScreen(h.x, h.y, w, ht, 40);
+    if (ps.visible) {
+      ctx.fillStyle = "#c6a15b";
+      ctx.font = "12px Cinzel, serif";
+      ctx.fillText(h.name, ps.x, ps.y);
+    }
+
+    // Floating damage / status numbers rise in world space.
+    ctx.font = "bold 16px Cinzel, serif";
     for (const f of this.floating) {
+      const s = this.r3d.worldToScreen(f.x, f.y, w, ht, 34);
+      if (!s.visible) continue;
       ctx.globalAlpha = Math.max(0, f.t * 2);
       ctx.fillStyle = f.color;
-      ctx.font = "bold 16px Cinzel, serif";
-      ctx.textAlign = "center";
-      ctx.fillText(f.text, f.x, f.y);
-      ctx.globalAlpha = 1;
+      ctx.fillText(f.text, s.x, s.y);
     }
-    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 }
 

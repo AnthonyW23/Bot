@@ -16,8 +16,10 @@
   <body>
     <div id="app">
       <canvas id="game"></canvas>
+      <canvas id="overlay"></canvas>
 
       <div id="vignette"></div>
+      <div id="fps" class="hidden"></div>
 
       <div id="hud" class="hidden">
         <div class="hud-left">
@@ -121,7 +123,8 @@
             </div>
             <div id="skill-list"></div>
           </div>
-          <p class="panel-hint">K close · Click a connected node to spend a skill point</p>
+          <div id="ability-binder"></div>
+          <p class="panel-hint">K close · Click a connected node to spend a skill point · Assign abilities to hotbar slots 1–6 below</p>
         </div>
       </div>
 

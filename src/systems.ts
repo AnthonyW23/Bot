@@ -1,4 +1,4 @@
-import { classById, raceById } from "./data/codex";
+import { classById, raceById, racialAbility } from "./data/codex";
 import { generateItem, startingGear, sumAffix } from "./data/loot";
 import { questById } from "./data/story";
 import { RNG, mod, xpToLevel, xpToSkill } from "./engine";
@@ -63,6 +63,7 @@ export function createHero(name: string, raceId: string, classId: string, abilit
     maxStamina: 100,
     skills,
     treeUnlocked: cls.tree[0] ? [cls.tree[0].id] : [],
+    hotbar: defaultHotbar(classId, raceId),
     skillPoints: race.id === "human" ? 2 : 1,
     attributePoints: 0,
     inventory: [...gear],
@@ -77,6 +78,40 @@ export function createHero(name: string, raceId: string, classId: string, abilit
     facing: 0,
     shrine: { plane: "material", x: 25.2 * 48, y: 52.6 * 48 },
   };
+}
+
+export const HOTBAR_SIZE = 6;
+
+// Default hotbar: the class's abilities first, then the race's signature ability.
+export function defaultHotbar(classId: string, raceId: string): (string | null)[] {
+  const slots: (string | null)[] = new Array(HOTBAR_SIZE).fill(null);
+  const cls = classById(classId);
+  let i = 0;
+  for (const a of cls.abilities) {
+    if (i < HOTBAR_SIZE) slots[i++] = a.id;
+  }
+  const racial = racialAbility(raceId);
+  if (racial && i < HOTBAR_SIZE) slots[i++] = racial.id;
+  return slots;
+}
+
+// Backfill the hotbar for heroes loaded from older saves.
+export function ensureHotbar(h: Hero): void {
+  if (!Array.isArray(h.hotbar) || h.hotbar.length !== HOTBAR_SIZE) {
+    h.hotbar = defaultHotbar(h.classId, h.raceId);
+  }
+}
+
+// Bind an ability to a hotbar slot (clearing any duplicate binding first).
+export function assignHotbar(h: Hero, slot: number, abilityId: string | null): void {
+  if (slot < 0 || slot >= HOTBAR_SIZE) return;
+  ensureHotbar(h);
+  if (abilityId) {
+    for (let i = 0; i < h.hotbar.length; i++) {
+      if (h.hotbar[i] === abilityId) h.hotbar[i] = null;
+    }
+  }
+  h.hotbar[slot] = abilityId;
 }
 
 export function hash(s: string): number {

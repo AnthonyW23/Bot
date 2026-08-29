@@ -1,7 +1,7 @@
-import { CLASSES, RACES, ABILITY_NAMES } from "./data/codex";
+import { CLASSES, RACES, ABILITY_NAMES, abilityRegistry } from "./data/codex";
 import { SKILL_LABELS, questById, PLANE_META } from "./data/story";
 import { canUnlock, derived, optionAllowed } from "./systems";
-import type { DialogueNode, DialogueOption, Hero, Item, SkillId } from "./types";
+import type { AbilityDef, DialogueNode, DialogueOption, Hero, Item, SkillId } from "./types";
 
 export const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -81,15 +81,15 @@ export function updateHud(h: Hero): void {
   $("xp-fill").style.width = `${(h.xp / need) * 100}%`;
   $("xp-text").textContent = `Lv ${h.level}`;
   $("plane-badge").textContent = PLANE_META[h.plane].name;
-  const cls = CLASSES.find((c) => c.id === h.classId)!;
   const bar = $("hotbar");
   bar.innerHTML = "";
-  const keys = ["1", "2", "3", "4"];
-  cls.abilities.forEach((a, i) => {
-    const locked = a.requiresNode && !h.treeUnlocked.includes(a.requiresNode);
+  const registry = abilityRegistry(h.classId, h.raceId);
+  h.hotbar.forEach((abilityId, i) => {
     const d = document.createElement("div");
-    d.className = "hotkey" + (locked ? " cooling" : "");
-    d.innerHTML = `<b>${keys[i]}</b>${a.name}`;
+    const ability = abilityId ? registry.find((a) => a.id === abilityId) : undefined;
+    const locked = ability?.requiresNode && !h.treeUnlocked.includes(ability.requiresNode);
+    d.className = "hotkey" + (locked ? " cooling" : "") + (ability ? "" : " empty");
+    d.innerHTML = `<b>${i + 1}</b>${ability ? ability.name : "—"}`;
     bar.appendChild(d);
   });
   const q = h.questLog.find((x) => !x.done);
@@ -157,7 +157,11 @@ export function itemTip(it: Item): string {
   return `<strong class="r-${it.rarity}">${it.name}</strong><br/>${it.rarity} ${it.slot}<br/>${it.damage ? `Damage ${it.damage}<br/>` : ""}${it.armor ? `Armor ${it.armor}<br/>` : ""}${aff}<br/><em>${it.lore ?? ""}</em>`;
 }
 
-export function renderSkills(h: Hero, onNode: (id: string) => void): void {
+export function renderSkills(
+  h: Hero,
+  onNode: (id: string) => void,
+  onBind?: (slot: number, abilityId: string | null) => void,
+): void {
   $("skill-points-label").textContent = `${h.skillPoints} skill point${h.skillPoints === 1 ? "" : "s"} · class lattice and use-based skills`;
   const cls = CLASSES.find((c) => c.id === h.classId)!;
   const svg = document.getElementById("skill-lines") as unknown as SVGSVGElement;
@@ -197,6 +201,38 @@ export function renderSkills(h: Hero, onNode: (id: string) => void): void {
   list.innerHTML = Object.entries(h.skills)
     .map(([k, v]) => `<div><strong>${SKILL_LABELS[k as SkillId]}</strong> ${v.level}</div>`)
     .join("");
+  renderAbilityBinder(h, onBind);
+}
+
+// The hotbar binder: every ability the hero owns, with buttons to place it in
+// hotbar slots 1–6. Locked abilities (lattice node not yet spent) are dimmed.
+function renderAbilityBinder(h: Hero, onBind?: (slot: number, abilityId: string | null) => void): void {
+  const wrap = $("ability-binder");
+  wrap.innerHTML = "<h3>Hotbar — assign your skills</h3>";
+  const registry = abilityRegistry(h.classId, h.raceId);
+  registry.forEach((ability: AbilityDef) => {
+    const locked = !!ability.requiresNode && !h.treeUnlocked.includes(ability.requiresNode);
+    const row = document.createElement("div");
+    row.className = "bind-row" + (locked ? " locked" : "");
+    const name = document.createElement("div");
+    name.className = "bind-name";
+    name.innerHTML = `<span>${ability.name}</span><small>${locked ? "Locked — spend a lattice point first" : ability.desc}</small>`;
+    row.appendChild(name);
+    const slots = document.createElement("div");
+    slots.className = "bind-slots";
+    for (let i = 0; i < h.hotbar.length; i++) {
+      const b = document.createElement("button");
+      const active = h.hotbar[i] === ability.id;
+      b.className = "bind-slot" + (active ? " active" : "");
+      b.textContent = String(i + 1);
+      b.disabled = locked || !onBind;
+      b.title = active ? `Unbind from slot ${i + 1}` : `Bind to slot ${i + 1}`;
+      b.onclick = () => onBind?.(i, active ? null : ability.id);
+      slots.appendChild(b);
+    }
+    row.appendChild(slots);
+    wrap.appendChild(row);
+  });
 }
 
 export function renderJournal(h: Hero): void {
