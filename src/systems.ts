@@ -72,11 +72,14 @@ export function createHero(name: string, raceId: string, classId: string, abilit
     questLog: [],
     flags: {},
     shards: [],
-    x: 25.2 * 48,
-    y: 52.4 * 48,
+    // Ashenford village spawn (tile 20,24). enter() re-syncs this on embark,
+    // but the default shrine must also sit inside the compact village so that
+    // respawning before resting at a shrine never lands in the void.
+    x: 20 * 48,
+    y: 24 * 48,
     plane: "material",
     facing: 0,
-    shrine: { plane: "material", x: 25.2 * 48, y: 52.6 * 48 },
+    shrine: { plane: "material", x: 20 * 48, y: 24 * 48 },
   };
 }
 
